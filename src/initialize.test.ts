@@ -48,7 +48,7 @@ describe("MCPClient initialization", () => {
     let result
 
     beforeEach(async () => {
-      client = new MCPClient(`http://localhost:${port}`)
+      client = new MCPClient(`http://localhost:${port}/mcp`)
       result = await client.initialize()
     })
 
@@ -89,7 +89,7 @@ describe("MCPClient initialization", () => {
     let result2
 
     beforeEach(async () => {
-      client = new MCPClient(`http://localhost:${port}`)
+      client = new MCPClient(`http://localhost:${port}/mcp`)
       result1 = await client.initialize()
       result2 = await client.initialize()
     })
@@ -106,7 +106,7 @@ describe("MCPClient initialization", () => {
     let error
 
     beforeEach(async () => {
-      client = new MCPClient(`http://localhost:${port}`)
+      client = new MCPClient(`http://localhost:${port}/mcp`)
       try {
         await client.listTools()
       } catch (e) {

@@ -72,7 +72,7 @@ describe("MCPClient", () => {
     let tools
 
     beforeEach(async () => {
-      const client = new MCPClient(`http://localhost:${port}`)
+      const client = new MCPClient(`http://localhost:${port}/mcp`)
       await client.initialize()
       tools = await client.listTools()
     })
@@ -130,7 +130,7 @@ describe("MCPClient", () => {
         })
       })
 
-      const client = new MCPClient(`http://localhost:${port}`)
+      const client = new MCPClient(`http://localhost:${port}/mcp`)
       await client.initialize()
       await client.listTools()
     })
@@ -150,7 +150,7 @@ describe("MCPClient", () => {
     let result
 
     beforeEach(async () => {
-      const client = new MCPClient(`http://localhost:${port}`)
+      const client = new MCPClient(`http://localhost:${port}/mcp`)
       await client.initialize()
       result = await client.callTool("spellOfSummoning", {})
     })
@@ -212,7 +212,7 @@ describe("MCPClient with alternate server", () => {
     let result
 
     beforeEach(async () => {
-      const client = new MCPClient(`http://localhost:${port}`)
+      const client = new MCPClient(`http://localhost:${port}/mcp`)
       await client.initialize()
       result = await client.callTool("spellOfSummoning", {})
     })
@@ -227,7 +227,7 @@ describe("MCPClient with alternate server", () => {
 
     beforeEach(async () => {
       serverResponse = { content: [{ type: "text", text: "specific tool result" }] }
-      const client = new MCPClient(`http://localhost:${port}`)
+      const client = new MCPClient(`http://localhost:${port}/mcp`)
       await client.initialize()
       result = await client.callTool("specificTool", { param: "value" })
     })
@@ -242,7 +242,7 @@ describe("MCPClient with alternate server", () => {
 
     beforeEach(async () => {
       serverResponse = { content: [{ type: "text", text: "another tool result" }] }
-      const client = new MCPClient(`http://localhost:${port}`)
+      const client = new MCPClient(`http://localhost:${port}/mcp`)
       await client.initialize()
       result = await client.callTool("anotherTool", { data: "test" })
     })
@@ -298,7 +298,7 @@ describe("MCPClient with different server", () => {
     let result
 
     beforeEach(async () => {
-      const client = new MCPClient(`http://localhost:${port}`)
+      const client = new MCPClient(`http://localhost:${port}/mcp`)
       await client.initialize()
       result = await client.callTool("spellOfSummoning", {})
     })
@@ -355,7 +355,7 @@ describe("MCPClient headers", () => {
 
   describe("when making a request", () => {
     beforeEach(async () => {
-      const client = new MCPClient(`http://localhost:${port}`)
+      const client = new MCPClient(`http://localhost:${port}/mcp`)
       await client.initialize()
       await client.callTool("testTool", {})
     })
@@ -403,7 +403,7 @@ describe("MCPClient headers", () => {
         })
       })
 
-      const client = new MCPClient(`http://localhost:${port}`)
+      const client = new MCPClient(`http://localhost:${port}/mcp`)
       await client.initialize()
       result = await client.callTool("spellOfSummoning", {})
     })
@@ -450,7 +450,7 @@ describe("MCPClient headers", () => {
         })
       })
 
-      const client = new MCPClient(`http://localhost:${port}`)
+      const client = new MCPClient(`http://localhost:${port}/mcp`)
       await client.initialize()
       try {
         await client.callTool("unknownTool", {})
@@ -505,7 +505,7 @@ describe("MCPClient headers", () => {
         })
       })
 
-      const client = new MCPClient(`http://localhost:${port}`)
+      const client = new MCPClient(`http://localhost:${port}/mcp`)
       await client.initialize()
       result = await client.callTool("spellOfSummoning", {})
     })
@@ -560,7 +560,7 @@ describe("MCPClient headers", () => {
         })
       })
 
-      const client = new MCPClient(`http://localhost:${port}`)
+      const client = new MCPClient(`http://localhost:${port}/mcp`)
       await client.initialize()
       finalResult = await client.callTool("longTask", {}, (notification) => {
         notifications.push(notification)
@@ -615,7 +615,7 @@ describe("MCPClient headers", () => {
         })
       })
 
-      const client = new MCPClient(`http://localhost:${port}`, { headers: { Authorization: "Bearer secret-token" } })
+      const client = new MCPClient(`http://localhost:${port}/mcp`, { headers: { Authorization: "Bearer secret-token" } })
       await client.initialize()
       await client.callTool("testTool", {})
     })
@@ -664,7 +664,7 @@ describe("MCPClient headers", () => {
         })
       })
 
-      const client = new MCPClient(`http://localhost:${port}`)
+      const client = new MCPClient(`http://localhost:${port}/mcp`)
       await client.initialize()
       result = await client.callTool("spellOfSummoning", {})
     })
@@ -680,7 +680,7 @@ describe("MCPClient headers", () => {
     let result
 
     beforeEach(async () => {
-      const client = new MCPClient(`http://localhost:${port}`)
+      const client = new MCPClient(`http://localhost:${port}/mcp`)
       result = await client.connect()
     })
 
@@ -689,7 +689,7 @@ describe("MCPClient headers", () => {
     })
 
     it("should enforce initialization requirement for tool operations", async () => {
-      const client = new MCPClient(`http://localhost:${port}`)
+      const client = new MCPClient(`http://localhost:${port}/mcp`)
       await client.connect()
       
       // callTool should require initialization

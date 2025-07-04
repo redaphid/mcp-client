@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:once": "vitest --run",
-    "test": "vitest",
+    "test": "vitest --run",
+    "test:watch": "vitest",
     "type-check": "tsc --noEmit",
     "build": "tsc",
     "connect": "node --experimental-strip-types cli.ts"
