@@ -1,5 +1,5 @@
 export class MCPClient {
-  constructor(public endpoint: string) {}
+  constructor(public endpoint: string, public requestOptions?: any) {}
 
   async connect() {
     return "connected"
@@ -11,6 +11,7 @@ export class MCPClient {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json, text/event-stream",
+        ...this.requestOptions?.headers,
       },
     })
     const data = await response.json()
@@ -23,6 +24,7 @@ export class MCPClient {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json, text/event-stream",
+        ...this.requestOptions?.headers,
       },
       body: JSON.stringify({
         jsonrpc: "2.0",

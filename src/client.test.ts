@@ -366,4 +366,34 @@ describe("MCPClient headers", () => {
       expect(finalResult).toEqual({ content: [{ type: "text", text: "completed" }] })
     })
   })
+
+  describe("when client has request options", () => {
+    let receivedHeaders
+
+    beforeEach(async () => {
+      const app = express()
+      app.use(express.json())
+      app.post("/mcp", (req, res) => {
+        receivedHeaders = req.headers
+        res.json({
+          content: [{ type: "text", text: "authenticated result" }],
+        })
+      })
+
+      await new Promise<void>((resolve) => {
+        server = app.listen(0, () => {
+          port = server.address().port
+          resolve()
+        })
+      })
+
+      const client = new MCPClient(`http://localhost:${port}`, { headers: { Authorization: "Bearer secret-token" } })
+      await client.connect()
+      await client.callTool("testTool", {})
+    })
+
+    it("should send Authorization header", () => {
+      expect(receivedHeaders.authorization).toBe("Bearer secret-token")
+    })
+  })
 })
