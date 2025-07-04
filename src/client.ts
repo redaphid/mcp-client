@@ -17,7 +17,7 @@ export class MCPClient {
     return data.tools
   }
 
-  async callTool(name, args) {
+  async callTool(name, args, callback?) {
     const response = await fetch(`${this.endpoint}/mcp`, {
       method: "POST",
       headers: {
@@ -42,6 +42,9 @@ export class MCPClient {
       for (const line of lines) {
         if (line.startsWith('data: ')) {
           const jsonData = JSON.parse(line.slice(6))
+          if (jsonData.method && callback) {
+            callback(jsonData.params)
+          }
           if (jsonData.result) {
             finalResult = jsonData.result
           }

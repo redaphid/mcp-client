@@ -319,4 +319,51 @@ describe("MCPClient headers", () => {
       expect(result).toEqual({ content: [{ type: "text", text: "sse result" }] })
     })
   })
+
+  describe("when server returns long-running SSE stream", () => {
+    let notifications
+    let finalResult
+
+    beforeEach(async () => {
+      notifications = []
+      const app = express()
+      app.use(express.json())
+      app.post("/mcp", (req, res) => {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive'
+        })
+        res.write('data: {"jsonrpc": "2.0", "method": "notifications/progress", "params": {"step": "starting", "progress": 0.1}}\n\n')
+        res.write('data: {"jsonrpc": "2.0", "method": "notifications/progress", "params": {"step": "processing", "progress": 0.5}}\n\n')
+        res.write('data: {"jsonrpc": "2.0", "method": "notifications/progress", "params": {"step": "finishing", "progress": 0.9}}\n\n')
+        res.write('data: {"jsonrpc": "2.0", "id": "1", "result": {"content": [{"type": "text", "text": "completed"}]}}\n\n')
+        res.end()
+      })
+
+      await new Promise<void>((resolve) => {
+        server = app.listen(0, () => {
+          port = server.address().port
+          resolve()
+        })
+      })
+
+      const client = new MCPClient(`http://localhost:${port}`)
+      await client.connect()
+      finalResult = await client.callTool("longTask", {}, (notification) => {
+        notifications.push(notification)
+      })
+    })
+
+    it("should receive all progress notifications", () => {
+      expect(notifications).toHaveLength(3)
+      expect(notifications[0]).toEqual({ step: "starting", progress: 0.1 })
+      expect(notifications[1]).toEqual({ step: "processing", progress: 0.5 })
+      expect(notifications[2]).toEqual({ step: "finishing", progress: 0.9 })
+    })
+
+    it("should return final result", () => {
+      expect(finalResult).toEqual({ content: [{ type: "text", text: "completed" }] })
+    })
+  })
 })
