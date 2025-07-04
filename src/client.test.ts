@@ -4,6 +4,7 @@ import express from "express"
 
 describe("MCPClient", () => {
   let server
+  let port
 
   it("should exist", () => {
     expect(MCPClient).toBeDefined()
@@ -19,8 +20,10 @@ describe("MCPClient", () => {
       })
     })
     await new Promise<void>((resolve) => {
-      server = app.listen(3000)
-      server.on("listening", resolve)
+      server = app.listen(0, () => {
+        port = server.address().port
+        resolve()
+      })
     })
   })
 
@@ -40,7 +43,7 @@ describe("MCPClient", () => {
     let tools
 
     beforeEach(async () => {
-      const client = new MCPClient("http://localhost:3000")
+      const client = new MCPClient(`http://localhost:${port}`)
       await client.connect()
       tools = await client.listTools()
     })
@@ -54,7 +57,7 @@ describe("MCPClient", () => {
     let result
 
     beforeEach(async () => {
-      const client = new MCPClient("http://localhost:3000")
+      const client = new MCPClient(`http://localhost:${port}`)
       await client.connect()
       result = await client.callTool("testTool", {})
     })
@@ -67,6 +70,7 @@ describe("MCPClient", () => {
 
 describe("MCPClient with alternate server", () => {
   let server
+  let port
   let serverResponse
 
   beforeEach(async () => {
@@ -79,8 +83,10 @@ describe("MCPClient with alternate server", () => {
       })
     })
     await new Promise<void>((resolve) => {
-      server = app.listen(3000)
-      server.on("listening", resolve)
+      server = app.listen(0, () => {
+        port = server.address().port
+        resolve()
+      })
     })
   })
 
@@ -92,7 +98,7 @@ describe("MCPClient with alternate server", () => {
     let result
 
     beforeEach(async () => {
-      const client = new MCPClient("http://localhost:3000")
+      const client = new MCPClient(`http://localhost:${port}`)
       await client.connect()
       result = await client.callTool("testTool", {})
     })
@@ -107,7 +113,7 @@ describe("MCPClient with alternate server", () => {
 
     beforeEach(async () => {
       serverResponse = { content: [{ type: "text", text: "specific tool result" }] }
-      const client = new MCPClient("http://localhost:3000")
+      const client = new MCPClient(`http://localhost:${port}`)
       await client.connect()
       result = await client.callTool("specificTool", { param: "value" })
     })
@@ -122,7 +128,7 @@ describe("MCPClient with alternate server", () => {
 
     beforeEach(async () => {
       serverResponse = { content: [{ type: "text", text: "another tool result" }] }
-      const client = new MCPClient("http://localhost:3000")
+      const client = new MCPClient(`http://localhost:${port}`)
       await client.connect()
       result = await client.callTool("anotherTool", { data: "test" })
     })
@@ -134,6 +140,7 @@ describe("MCPClient with alternate server", () => {
 
   describe("when calling tool on different server", () => {
     let server2
+    let port2
     let result
 
     beforeEach(async () => {
@@ -146,11 +153,13 @@ describe("MCPClient with alternate server", () => {
       })
 
       await new Promise<void>((resolve) => {
-        server2 = app2.listen(4000)
-        server2.on("listening", () => resolve())
+        server2 = app2.listen(0, () => {
+          port2 = server2.address().port
+          resolve()
+        })
       })
 
-      const client = new MCPClient("http://localhost:4000")
+      const client = new MCPClient(`http://localhost:${port2}`)
       await client.connect()
       result = await client.callTool("testTool", {})
     })
@@ -167,6 +176,7 @@ describe("MCPClient with alternate server", () => {
 
 describe("MCPClient headers", () => {
   let server
+  let port
   let receivedHeaders
 
   beforeEach(async () => {
@@ -180,8 +190,10 @@ describe("MCPClient headers", () => {
     })
 
     await new Promise<void>((resolve) => {
-      server = app.listen(3000)
-      server.on("listening", () => resolve())
+      server = app.listen(0, () => {
+        port = server.address().port
+        resolve()
+      })
     })
   })
 
@@ -191,7 +203,7 @@ describe("MCPClient headers", () => {
 
   describe("when making a request", () => {
     beforeEach(async () => {
-      const client = new MCPClient("http://localhost:3000")
+      const client = new MCPClient(`http://localhost:${port}`)
       await client.connect()
       await client.callTool("testTool", {})
     })
