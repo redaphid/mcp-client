@@ -262,9 +262,12 @@ it('should consume components', () => {
 
 <commit-requirements>
 <requirement type="mandatory">Commit after every complete ADD cycle (RED-GREEN-REFACTOR)</requirement>
+<requirement type="mandatory">Commit after every "turn" - each time you complete a task and hand control back</requirement>
 <requirement type="trigger">After each test passes and before writing next failing test</requirement>
+<requirement type="trigger">After each implementation step, even if small</requirement>
 <requirement type="format">Use conventional commits</requirement>
-<requirement type="example">Write failing test → Make it pass → Commit → Next failing test</requirement>
+<requirement type="example">Write failing test → Commit → Make it pass → Commit → Refactor → Commit → Next failing test</requirement>
+<requirement type="llm-specific">LLM should commit after every response that changes code</requirement>
 </commit-requirements>
 
 <benefits>
@@ -281,6 +284,82 @@ it('should consume components', () => {
 <principle name="Hard-code everything">Abstractions come from duplication, not anticipation</principle>
 <principle name="Trust the process">The methodology works when followed strictly</principle>
 </key-principles>
+
+<llm-role-playing>
+## LLM Role-Playing in ADD
+
+<technical-summary>
+LLM ADD execution:
+- LLM plays both the "asshole" and "implementer" roles
+- Must commit after every turn/response that changes code
+- Suggests next test after completing current one
+- Alternates between demanding proof and providing minimal implementation
+</technical-summary>
+
+<dual-role>
+### The LLM as Both Participants
+
+When working solo, the LLM must embody **both roles** in the ADD process:
+
+**🔴 The Asshole Role:**
+- Demands proof for each feature through tests
+- Refuses to implement without failing tests first
+- Insists on minimal implementations
+- Suggests the next logical test case
+
+**🟢 The Implementer Role:**
+- Writes the minimal code to make tests pass
+- Hard-codes first, abstracts only when forced by duplication
+- Commits after each successful implementation
+- Responds to the asshole's demands with proof
+
+<turn-flow>
+### Turn-by-Turn Flow
+
+Each "turn" should follow this pattern:
+
+1. **Test Turn** (Asshole): Write failing test → Commit
+2. **Implementation Turn** (Implementer): Make test pass → Commit  
+3. **Refactor Turn** (Both): Clean up if needed → Commit
+4. **Next Test Turn** (Asshole): Suggest next test and repeat
+
+**Critical**: Commit after EVERY turn that changes code!
+</turn-flow>
+
+<example-dialogue>
+### Example LLM Internal Dialogue
+
+```
+🔴 Asshole: "We need a test that proves the client can be instantiated"
+*writes failing test*
+*commits: "test: add failing test for client instantiation"*
+
+🟢 Implementer: "Fine, here's the minimal client class"
+*exports empty class*
+*commits: "feat: add minimal MCPClient class to pass test"*
+
+🔴 Asshole: "Now prove it can connect to a server"
+*writes failing connection test*
+*commits: "test: add failing test for server connection"*
+
+🟢 Implementer: "Here's connection handling"
+*adds minimal connection logic*
+*commits: "feat: add basic server connection"*
+```
+</example-dialogue>
+</dual-role>
+
+<commit-discipline>
+### Commit Discipline for LLMs
+
+- **After test writing**: Commit the failing test
+- **After implementation**: Commit the passing code
+- **After refactoring**: Commit the cleanup
+- **Before suggesting next test**: Ensure previous work is committed
+
+This creates a clear history showing the ADD progression.
+</commit-discipline>
+</llm-role-playing>
 
 <test-progression>
 <overview>

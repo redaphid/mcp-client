@@ -196,14 +196,17 @@ it is CRITICAL that we ALWAYS follow these rules. Failure to do so will result i
 3. **One test at a time** - Never write multiple tests at once
 4. **Hard-code first** - Return literals before abstractions
 5. **Refactor only when green** - Never add features during refactor
+6. **Commit after every turn** - Every code change gets committed immediately
 
 <test-progression>
 The development should follow this progression:
-1. Client can be instantiated → test fails → make it pass
-2. Client can connect to server → test fails → make it pass
-3. Client can list tools → test fails → make it pass
-4. Client can call a tool → test fails → make it pass
+1. Client can be instantiated → test fails → commit → make it pass → commit
+2. Client can connect to server → test fails → commit → make it pass → commit
+3. Client can list tools → test fails → commit → make it pass → commit
+4. Client can call a tool → test fails → commit → make it pass → commit
 5. And so on...
+
+**Critical**: COMMIT after every turn that changes code!
 
 ❌ **WRONG** - Testing types/structure:
 - "Client is a class"

@@ -4,4 +4,8 @@ export class MCPClient {
   async connect() {
     return 'connected'
   }
+  
+  async listTools() {
+    return ['testTool']
+  }
 }
