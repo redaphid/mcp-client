@@ -39,6 +39,20 @@ describe("MCPClient", () => {
     })
   })
 
+  describe("when client initializes", () => {
+    let client
+    let initializeResult
+
+    beforeEach(async () => {
+      client = new MCPClient(`http://localhost:${port}`)
+      initializeResult = await client.initialize()
+    })
+
+    it("should return initialize result", () => {
+      expect(initializeResult).toBeDefined()
+    })
+  })
+
   describe("when listing tools", () => {
     let tools
 

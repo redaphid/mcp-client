@@ -156,7 +156,9 @@ describe('MCPClient', () => {
 ## Streamable HTTP Transport Implementation
 
 <protocol-overview>
-Per `MCP_SPEC.md`, the Streamable HTTP transport requires:
+**IMPORTANT**: The definitive MCP specification is in `./src/mcp-specification-schema.ts` - this schema represents the authoritative protocol definition.
+
+Per the MCP specification, the Streamable HTTP transport requires:
 
 1. **Request format**:
 
