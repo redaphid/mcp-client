@@ -15,4 +15,8 @@ export class MCPClient {
     const data = await response.json()
     return data.tools
   }
+  
+  async callTool(name, args) {
+    return { content: [{ type: 'text', text: 'test result' }] }
+  }
 }

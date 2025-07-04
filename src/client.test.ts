@@ -46,4 +46,18 @@ describe("MCPClient", () => {
       expect(tools).toEqual([{ name: "testTool", description: "Test tool", inputSchema: { type: "object" } }])
     })
   })
+
+  describe("when calling a tool", () => {
+    let result
+
+    beforeEach(async () => {
+      const client = new MCPClient("http://localhost:3000")
+      await client.connect()
+      result = await client.callTool('testTool', {})
+    })
+
+    it("should return tool result", () => {
+      expect(result).toEqual({ content: [{ type: 'text', text: 'test result' }] })
+    })
+  })
 })
