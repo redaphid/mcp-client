@@ -200,4 +200,36 @@ describe("MCPClient headers", () => {
       expect(receivedHeaders.accept).toBe("application/json, text/event-stream")
     })
   })
+
+  describe("when server returns JSON-RPC response", () => {
+    let result
+    let port
+
+    beforeEach(async () => {
+      const app = express()
+      app.use(express.json())
+      app.post("/mcp", (req, res) => {
+        res.json({
+          jsonrpc: "2.0",
+          id: "1", 
+          result: { content: [{ type: "text", text: "jsonrpc result" }] }
+        })
+      })
+
+      await new Promise<void>((resolve) => {
+        server = app.listen(0, () => {
+          port = server.address().port
+          resolve()
+        })
+      })
+
+      const client = new MCPClient(`http://localhost:${port}`)
+      await client.connect()
+      result = await client.callTool("testTool", {})
+    })
+
+    it("should extract result from JSON-RPC wrapper", () => {
+      expect(result).toEqual({ content: [{ type: "text", text: "jsonrpc result" }] })
+    })
+  })
 })
