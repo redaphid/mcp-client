@@ -257,6 +257,7 @@ it('should consume components', () => {
 <violation>❌ Not alternating roles</violation>
 <violation>❌ Anticipating future requirements</violation>
 <violation>❌ Adding functionality during refactor</violation>
+<violation>❌ Testing types/structure instead of behavior</violation>
 </critical-violations>
 
 <commit-requirements>
@@ -284,17 +285,27 @@ it('should consume components', () => {
 <test-progression>
 <overview>
 After each cycle, the developer should suggest the next logical test case:
-- "Next test: Should we verify that server is a function?"
-- "Next test: Should we test that it returns a Response object?"
-- "Next test: Should we verify it handles GET requests?"
+- "Next test: Should we verify the client can connect to a server?"
+- "Next test: Should we test that it can list available tools?"
+- "Next test: Should we verify it handles tool calls correctly?"
 
 This allows the other developer to simply respond "yes" to continue the flow.
+
+❌ **WRONG** - Testing types/structure:
+- "Should be a function"
+- "Should be a class"
+- "Should have property X"
+
+✅ **RIGHT** - Testing behavior:
+- "Should connect to server"
+- "Should list tools"
+- "Should handle errors gracefully"
 </overview>
 
 <progression-patterns>
 <pattern name="Starting Tests" type="universal">
-<test order="1">Next test: should exist?</test>
-<test order="2">Next test: should be a function?</test>
+<test order="1">Next test: should be instantiable?</test>
+<test order="2">Next test: should handle basic operations?</test>
 <test order="3">Next test: when given [specific input], should return [specific output]?</test>
 </pattern>
 

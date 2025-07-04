@@ -199,11 +199,21 @@ it is CRITICAL that we ALWAYS follow these rules. Failure to do so will result i
 
 <test-progression>
 The development should follow this progression:
-1. Client exists → test fails → make it pass
-2. Client is a class → test fails → make it pass
-3. Client has constructor → test fails → make it pass
-4. Client accepts endpoint → test fails → make it pass
+1. Client can be instantiated → test fails → make it pass
+2. Client can connect to server → test fails → make it pass
+3. Client can list tools → test fails → make it pass
+4. Client can call a tool → test fails → make it pass
 5. And so on...
+
+❌ **WRONG** - Testing types/structure:
+- "Client is a class"
+- "Client is a function" 
+- "Server has property X"
+
+✅ **RIGHT** - Testing behavior:
+- "Client can list tools"
+- "Client can call tool and get result"
+- "Client handles server errors gracefully"
 </test-progression>
 </add-compliance>
 
@@ -265,6 +275,7 @@ See documentation in `/docs/methodology/` for complete methodology details.
 4. **AAA pattern** - Arrange, Act, Assert in separate beforeEach blocks
 5. **Nested describes** - Proper context hierarchy
 6. **Follow ADD** - One test at a time STRICTLY
+7. **Test behavior, not types** - Assert what the code DOES, not what it IS
 
 </test-code-rules>
 </implementation-guidelines>
