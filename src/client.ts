@@ -5,6 +5,10 @@ export class MCPClient {
     return "connected"
   }
 
+  async initialize() {
+    return {}
+  }
+
   async listTools() {
     const response = await fetch(`${this.endpoint}/mcp`, {
       method: "POST",
