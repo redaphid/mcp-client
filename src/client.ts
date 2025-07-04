@@ -32,6 +32,25 @@ export class MCPClient {
       }),
     })
 
+    const contentType = response.headers.get("content-type")
+    
+    if (contentType?.includes("text/event-stream")) {
+      const text = await response.text()
+      const lines = text.split('\n')
+      let finalResult = null
+      
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const jsonData = JSON.parse(line.slice(6))
+          if (jsonData.result) {
+            finalResult = jsonData.result
+          }
+        }
+      }
+      
+      return finalResult
+    }
+
     const data = await response.json()
 
     if (data.tools) {

@@ -285,4 +285,38 @@ describe("MCPClient headers", () => {
       expect(error.message).toBe("Method not found")
     })
   })
+
+  describe("when server returns SSE stream", () => {
+    let result
+
+    beforeEach(async () => {
+      const app = express()
+      app.use(express.json())
+      app.post("/mcp", (req, res) => {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive'
+        })
+        res.write('data: {"jsonrpc": "2.0", "method": "notifications/progress", "params": {"progress": 0.5}}\n\n')
+        res.write('data: {"jsonrpc": "2.0", "id": "1", "result": {"content": [{"type": "text", "text": "sse result"}]}}\n\n')
+        res.end()
+      })
+
+      await new Promise<void>((resolve) => {
+        server = app.listen(0, () => {
+          port = server.address().port
+          resolve()
+        })
+      })
+
+      const client = new MCPClient(`http://localhost:${port}`)
+      await client.connect()
+      result = await client.callTool("testTool", {})
+    })
+
+    it("should return final result from SSE stream", () => {
+      expect(result).toEqual({ content: [{ type: "text", text: "sse result" }] })
+    })
+  })
 })
