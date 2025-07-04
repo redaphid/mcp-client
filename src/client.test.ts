@@ -250,4 +250,39 @@ describe("MCPClient headers", () => {
       expect(result).toEqual({ content: [{ type: "text", text: "jsonrpc result" }] })
     })
   })
+
+  describe("when server returns JSON-RPC error", () => {
+    let error
+
+    beforeEach(async () => {
+      const app = express()
+      app.use(express.json())
+      app.post("/mcp", (req, res) => {
+        res.json({
+          jsonrpc: "2.0",
+          id: "1",
+          error: { code: -32601, message: "Method not found" }
+        })
+      })
+
+      await new Promise<void>((resolve) => {
+        server = app.listen(0, () => {
+          port = server.address().port
+          resolve()
+        })
+      })
+
+      const client = new MCPClient(`http://localhost:${port}`)
+      await client.connect()
+      try {
+        await client.callTool("unknownTool", {})
+      } catch (e) {
+        error = e
+      }
+    })
+
+    it("should throw error with message", () => {
+      expect(error.message).toBe("Method not found")
+    })
+  })
 })

@@ -38,6 +38,10 @@ export class MCPClient {
       return { content: [{ type: "text", text: "test result" }] }
     }
 
+    if (data.error) {
+      throw new Error(data.error.message)
+    }
+
     if (data.result) {
       return data.result
     }
