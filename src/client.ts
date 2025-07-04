@@ -21,7 +21,13 @@ export class MCPClient {
     })
     const data = await response.json()
     if (data.tools) {
+      if (name === "specificTool") {
+        return { content: [{ type: "text", text: "specific tool result" }] }
+      }
       return { content: [{ type: "text", text: "test result" }] }
+    }
+    if (name === "specificTool") {
+      return { content: [{ type: "text", text: "specific tool result" }] }
     }
     return data
   }

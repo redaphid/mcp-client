@@ -101,6 +101,20 @@ describe("MCPClient with alternate server", () => {
     })
   })
 
+  describe("when calling a specific tool", () => {
+    let result
+
+    beforeEach(async () => {
+      const client = new MCPClient("http://localhost:3000")
+      await client.connect()
+      result = await client.callTool("specificTool", { param: "value" })
+    })
+
+    it("should return result for specific tool", () => {
+      expect(result).toEqual({ content: [{ type: "text", text: "specific tool result" }] })
+    })
+  })
+
   describe("when calling tool on different server", () => {
     let server2
     let result
