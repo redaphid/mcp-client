@@ -26,6 +26,20 @@ export class MCPClient {
     })
     
     const data = await response.json()
+    
+    await fetch(`${this.endpoint}/mcp`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+        ...this.requestOptions?.headers,
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        method: "notifications/initialized"
+      })
+    })
+    
     return data.result
   }
 
