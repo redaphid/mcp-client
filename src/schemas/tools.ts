@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { JSONRPCRequestSchema } from "./json-rpc"
+import { JSONRPCRequestSchema } from "./json-rpc.ts"
 
 // Content Block Schema
 export const ContentBlockSchema = z.object({

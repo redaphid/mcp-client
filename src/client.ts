@@ -1,12 +1,23 @@
-import { JSONRPCRequest, InitializeRequest, InitializedNotification, CallToolRequest, JSONRPC_VERSION } from "./schemas"
+import { JSONRPC_VERSION, InitializeRequestSchema, InitializedNotificationSchema, CallToolRequestSchema } from "./schemas/index.ts"
+import createDebug from "debug"
+
+const debug = createDebug("mcp:client")
 
 export class MCPClient {
   private isInitialized = false
+  endpoint: string
+  requestOptions?: any
 
-  constructor(public endpoint: string, public requestOptions?: any) {}
+  constructor(endpoint: string, requestOptions?: any) {
+    this.endpoint = endpoint
+    this.requestOptions = requestOptions
+    debug("MCPClient created with endpoint: %s", endpoint)
+  }
 
   private generateRequestId() {
-    return crypto.randomUUID()
+    const id = crypto.randomUUID()
+    debug("Generated request ID: %s", id)
+    return id
   }
 
   private checkInitialized() {
@@ -20,84 +31,123 @@ export class MCPClient {
   }
 
   async initialize() {
+    debug("Starting initialization...")
     // MCP Initialization: https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle
     // Client sends initialize request with protocol version and capabilities
-    const response = await fetch(`${this.endpoint}/mcp`, {
+    const requestBody = InitializeRequestSchema.parse({
+      jsonrpc: JSONRPC_VERSION,
+      id: this.generateRequestId(),
+      method: "initialize",
+      params: {
+        protocolVersion: "2025-06-18",
+        capabilities: {},
+        clientInfo: { name: "mystical-test-familiar", version: "0.0.0" },
+      },
+    })
+    
+    debug("Sending initialize request: %O", requestBody)
+    
+    const response = await fetch(this.endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json, text/event-stream",
         ...this.requestOptions?.headers,
       },
-      body: JSON.stringify({
-        jsonrpc: JSONRPC_VERSION,
-        id: this.generateRequestId(),
-        method: "initialize",
-        params: {
-          protocolVersion: "2025-06-18",
-          capabilities: {},
-          clientInfo: { name: "mystical-test-familiar", version: "0.0.0" },
-        },
-      } as JSONRPCRequest & InitializeRequest),
+      body: JSON.stringify(requestBody),
     })
 
-    const data = await response.json()
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`HTTP ${response.status}: ${text}`)
+    }
+    
+    debug('Response status: %d', response.status)
+    debug('Response headers: %O', Object.fromEntries(response.headers.entries()))
+    const text = await response.text()
+    debug('Response text: %s', text.substring(0, 500))
+    
+    // Try to parse as JSON
+    let data
+    try {
+      data = JSON.parse(text)
+    } catch (e) {
+      throw new Error(`Failed to parse JSON response: ${text.substring(0, 100)}...`)
+    }
 
+    debug("Initialize response data: %O", data)
+    
     // MCP Initialized Notification: https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle
     // After successful initialize response, client must send initialized notification
-    await fetch(`${this.endpoint}/mcp`, {
+    const notificationBody = InitializedNotificationSchema.parse({
+      jsonrpc: JSONRPC_VERSION,
+      method: "notifications/initialized",
+    })
+    
+    debug("Sending initialized notification: %O", notificationBody)
+    
+    await fetch(this.endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json, text/event-stream",
         ...this.requestOptions?.headers,
       },
-      body: JSON.stringify({
-        jsonrpc: JSONRPC_VERSION,
-        method: "notifications/initialized",
-      } as InitializedNotification),
+      body: JSON.stringify(notificationBody),
     })
 
     this.isInitialized = true
+    debug("Initialization complete, client is now initialized")
     return data.result
   }
 
   async listTools() {
     this.checkInitialized()
+    debug("Listing tools...")
     // MCP Tools List: https://modelcontextprotocol.io/specification/2025-06-18/server/tools
-    const response = await fetch(`${this.endpoint}/mcp`, {
+    const requestBody = {
+      jsonrpc: JSONRPC_VERSION,
+      id: this.generateRequestId(),
+      method: "tools/list"
+    }
+    
+    debug("Sending listTools request: %O", requestBody)
+    
+    const response = await fetch(this.endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json, text/event-stream",
         ...this.requestOptions?.headers,
       },
-      body: JSON.stringify({
-        jsonrpc: JSONRPC_VERSION,
-        id: this.generateRequestId(),
-        method: "tools/list"
-      })
+      body: JSON.stringify(requestBody)
     })
+    
+    debug('listTools response status: %d', response.status)
+    debug('listTools response headers: %O', Object.fromEntries(response.headers.entries()))
+    
     const data = await response.json()
+    debug("listTools response data: %O", data)
+    
     return data.result.tools
   }
 
   async callTool(name, args, callback?) {
     this.checkInitialized()
     // MCP Tool Call: https://modelcontextprotocol.io/specification/2025-06-18/server/tools
-    const response = await fetch(`${this.endpoint}/mcp`, {
+    const response = await fetch(this.endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json, text/event-stream",
         ...this.requestOptions?.headers,
       },
-      body: JSON.stringify({
+      body: JSON.stringify(CallToolRequestSchema.parse({
         jsonrpc: JSONRPC_VERSION,
         id: this.generateRequestId(),
         method: "tools/call",
         params: { name, arguments: args },
-      } as JSONRPCRequest & CallToolRequest),
+      })),
     })
 
     const contentType = response.headers.get("content-type")

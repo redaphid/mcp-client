@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { JSONRPCNotificationSchema } from "./json-rpc"
+import { JSONRPCNotificationSchema } from "./json-rpc.ts"
 
 // Progress Token Schema
 export const ProgressTokenSchema = z.union([z.string(), z.number()])

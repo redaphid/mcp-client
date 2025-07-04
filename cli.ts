@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { MCPClient } from './src/client.js'
+import { MCPClient } from './src/client.ts'
 
 const main = async () => {
   const url = process.argv[2]

@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { JSONRPCRequestSchema, JSONRPCNotificationSchema, JSONRPC_VERSION } from "./json-rpc"
+import { JSONRPCRequestSchema, JSONRPCNotificationSchema, JSONRPC_VERSION } from "./json-rpc.ts"
 
 // MCP Initialization Schemas
 export const ClientCapabilitiesSchema = z.object({
