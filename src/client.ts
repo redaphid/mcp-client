@@ -1,4 +1,6 @@
 export class MCPClient {
+  private requestId = 0
+
   constructor(public endpoint: string, public requestOptions?: any) {}
 
   async connect() {
@@ -15,7 +17,7 @@ export class MCPClient {
       },
       body: JSON.stringify({
         jsonrpc: "2.0",
-        id: "1",
+        id: String(++this.requestId),
         method: "initialize",
         params: {
           protocolVersion: "2025-06-18",
@@ -66,7 +68,7 @@ export class MCPClient {
       },
       body: JSON.stringify({
         jsonrpc: "2.0",
-        id: "1",
+        id: String(++this.requestId),
         method: "tools/call",
         params: { name, arguments: args },
       }),
