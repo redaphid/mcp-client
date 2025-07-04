@@ -96,4 +96,22 @@ describe("MCPClient initialization", () => {
       expect(firstRequestId).not.toEqual(thirdRequestId)
     })
   })
+
+  describe("when client is not initialized", () => {
+    let client
+    let error
+
+    beforeEach(async () => {
+      client = new MCPClient(`http://localhost:${port}`)
+      try {
+        await client.listTools()
+      } catch (e) {
+        error = e
+      }
+    })
+
+    it("should throw error when calling methods before initialization", () => {
+      expect(error.message).toBe("Client must be initialized before making requests")
+    })
+  })
 })
