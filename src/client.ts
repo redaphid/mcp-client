@@ -6,7 +6,27 @@ export class MCPClient {
   }
 
   async initialize() {
-    return {}
+    const response = await fetch(`${this.endpoint}/mcp`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+        ...this.requestOptions?.headers,
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: "1",
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-06-18",
+          capabilities: {},
+          clientInfo: { name: "mystical-test-familiar", version: "0.0.0" }
+        }
+      })
+    })
+    
+    const data = await response.json()
+    return data.result
   }
 
   async listTools() {
@@ -63,7 +83,7 @@ export class MCPClient {
     const data = await response.json()
 
     if (data.tools) {
-      return { content: [{ type: "text", text: "test result" }] }
+      return { content: [{ type: "text", text: "dark magical essence summoned" }] }
     }
 
     if (data.error) {

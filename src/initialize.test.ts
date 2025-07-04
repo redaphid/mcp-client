@@ -21,7 +21,7 @@ describe("MCPClient initialization", () => {
           result: {
             protocolVersion: "2025-06-18",
             capabilities: { tools: {} },
-            serverInfo: { name: "test-server", version: "1.0.0" }
+            serverInfo: { name: "dark-grimoire-server", version: "1.0.0" }
           }
         })
         return
@@ -41,13 +41,17 @@ describe("MCPClient initialization", () => {
     server.close()
   })
 
-  describe("when client calls initializeMCP", () => {
+  describe("when client calls initialize", () => {
     let client
     let result
 
     beforeEach(async () => {
       client = new MCPClient(`http://localhost:${port}`)
-      result = await client.initializeMCP()
+      result = await client.initialize()
+    })
+
+    it("should return initialize result", () => {
+      expect(result).toBeDefined()
     })
 
     it("should send proper initialize request", () => {
@@ -58,7 +62,7 @@ describe("MCPClient initialization", () => {
         params: {
           protocolVersion: "2025-06-18",
           capabilities: {},
-          clientInfo: { name: "integration-test-client", version: "0.0.0" }
+          clientInfo: { name: "mystical-test-familiar", version: "0.0.0" }
         }
       })
     })

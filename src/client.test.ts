@@ -16,7 +16,7 @@ describe("MCPClient", () => {
 
     app.post("/mcp", (req, res) => {
       res.json({
-        tools: [{ name: "testTool", description: "Test tool", inputSchema: { type: "object" } }],
+        tools: [{ name: "spellOfSummoning", description: "Arcane incantation for mystical effects", inputSchema: { type: "object" } }],
       })
     })
     await new Promise<void>((resolve) => {
@@ -39,19 +39,6 @@ describe("MCPClient", () => {
     })
   })
 
-  describe("when client initializes", () => {
-    let client
-    let initializeResult
-
-    beforeEach(async () => {
-      client = new MCPClient(`http://localhost:${port}`)
-      initializeResult = await client.initialize()
-    })
-
-    it("should return initialize result", () => {
-      expect(initializeResult).toBeDefined()
-    })
-  })
 
   describe("when listing tools", () => {
     let tools
@@ -63,7 +50,7 @@ describe("MCPClient", () => {
     })
 
     it("should return array of tools", () => {
-      expect(tools).toEqual([{ name: "testTool", description: "Test tool", inputSchema: { type: "object" } }])
+      expect(tools).toEqual([{ name: "spellOfSummoning", description: "Arcane incantation for mystical effects", inputSchema: { type: "object" } }])
     })
   })
 
@@ -73,11 +60,11 @@ describe("MCPClient", () => {
     beforeEach(async () => {
       const client = new MCPClient(`http://localhost:${port}`)
       await client.connect()
-      result = await client.callTool("testTool", {})
+      result = await client.callTool("spellOfSummoning", {})
     })
 
     it("should return tool result", () => {
-      expect(result).toEqual({ content: [{ type: "text", text: "test result" }] })
+      expect(result).toEqual({ content: [{ type: "text", text: "dark magical essence summoned" }] })
     })
   })
 })
@@ -114,7 +101,7 @@ describe("MCPClient with alternate server", () => {
     beforeEach(async () => {
       const client = new MCPClient(`http://localhost:${port}`)
       await client.connect()
-      result = await client.callTool("testTool", {})
+      result = await client.callTool("spellOfSummoning", {})
     })
 
     it("should return alternate result", () => {
@@ -185,7 +172,7 @@ describe("MCPClient with different server", () => {
     beforeEach(async () => {
       const client = new MCPClient(`http://localhost:${port}`)
       await client.connect()
-      result = await client.callTool("testTool", {})
+      result = await client.callTool("spellOfSummoning", {})
     })
 
     it("should return different result", () => {
@@ -257,7 +244,7 @@ describe("MCPClient headers", () => {
 
       const client = new MCPClient(`http://localhost:${port}`)
       await client.connect()
-      result = await client.callTool("testTool", {})
+      result = await client.callTool("spellOfSummoning", {})
     })
 
     it("should extract result from JSON-RPC wrapper", () => {
@@ -326,7 +313,7 @@ describe("MCPClient headers", () => {
 
       const client = new MCPClient(`http://localhost:${port}`)
       await client.connect()
-      result = await client.callTool("testTool", {})
+      result = await client.callTool("spellOfSummoning", {})
     })
 
     it("should return final result from SSE stream", () => {
