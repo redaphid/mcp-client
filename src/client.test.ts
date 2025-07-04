@@ -1,14 +1,15 @@
-import { describe, it, expect, beforeEach, beforeAll, afterAll } from "vitest"
+import { describe, it, expect, beforeEach, beforeAll, afterAll, afterEach } from "vitest"
 import { MCPClient } from "./client"
 import express from "express"
-import { createServer } from "http"
-import { Server } from "s"
+
 describe("MCPClient", () => {
-  let server: Server
+  let server
+
   it("should exist", () => {
     expect(MCPClient).toBeDefined()
   })
-  beforeAll(async () => {
+
+  beforeEach(async () => {
     const app = express()
     app.use(express.json())
 
@@ -19,12 +20,14 @@ describe("MCPClient", () => {
     })
     await new Promise<void>((resolve) => {
       server = app.listen(3000)
-      server.on("listening", () => resolve())
+      server.on("listening", resolve)
     })
   })
-  afterAll(async () => {
+
+  afterEach(async () => {
     server.close()
   })
+
   describe("when creating a client", () => {
     const client = new MCPClient("http://crazyland.com")
 
@@ -53,11 +56,43 @@ describe("MCPClient", () => {
     beforeEach(async () => {
       const client = new MCPClient("http://localhost:3000")
       await client.connect()
-      result = await client.callTool('testTool', {})
+      result = await client.callTool("testTool", {})
     })
 
     it("should return tool result", () => {
-      expect(result).toEqual({ content: [{ type: 'text', text: 'test result' }] })
+      expect(result).toEqual({ content: [{ type: "text", text: "test result" }] })
+    })
+  })
+
+  describe("when calling tool on different server", () => {
+    let server2: Server
+    let result
+
+    beforeEach(async () => {
+      const app2 = express()
+      app2.use(express.json())
+      app2.post("/mcp", (req, res) => {
+        res.json({
+          content: [{ type: "text", text: "different result" }],
+        })
+      })
+
+      await new Promise<void>((resolve) => {
+        server2 = app2.listen(4000)
+        server2.on("listening", () => resolve())
+      })
+
+      const client = new MCPClient("http://localhost:4000")
+      await client.connect()
+      result = await client.callTool("testTool", {})
+    })
+
+    afterEach(async () => {
+      server2.close()
+    })
+
+    it("should return different result", () => {
+      expect(result).toEqual({ content: [{ type: "text", text: "different result" }] })
     })
   })
 })
