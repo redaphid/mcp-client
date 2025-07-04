@@ -138,34 +138,40 @@ describe("MCPClient with alternate server", () => {
     })
   })
 
-  describe("when calling tool on different server", () => {
-    let server2
-    let port2
+})
+
+describe("MCPClient with different server", () => {
+  let server
+  let port
+
+  beforeEach(async () => {
+    const app = express()
+    app.use(express.json())
+    app.post("/mcp", (req, res) => {
+      res.json({
+        content: [{ type: "text", text: "different result" }],
+      })
+    })
+
+    await new Promise<void>((resolve) => {
+      server = app.listen(0, () => {
+        port = server.address().port
+        resolve()
+      })
+    })
+  })
+
+  afterEach(async () => {
+    server.close()
+  })
+
+  describe("when calling a tool", () => {
     let result
 
     beforeEach(async () => {
-      const app2 = express()
-      app2.use(express.json())
-      app2.post("/mcp", (req, res) => {
-        res.json({
-          content: [{ type: "text", text: "different result" }],
-        })
-      })
-
-      await new Promise<void>((resolve) => {
-        server2 = app2.listen(0, () => {
-          port2 = server2.address().port
-          resolve()
-        })
-      })
-
-      const client = new MCPClient(`http://localhost:${port2}`)
+      const client = new MCPClient(`http://localhost:${port}`)
       await client.connect()
       result = await client.callTool("testTool", {})
-    })
-
-    afterEach(async () => {
-      server2.close()
     })
 
     it("should return different result", () => {
