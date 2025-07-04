@@ -18,16 +18,16 @@ export class MCPClient {
     const response = await fetch(`${this.endpoint}/mcp`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: "1",
+        method: "tools/call",
+        params: { name, arguments: args }
+      })
     })
     const data = await response.json()
     if (data.tools) {
-      if (name === "specificTool") {
-        return { content: [{ type: "text", text: "specific tool result" }] }
-      }
       return { content: [{ type: "text", text: "test result" }] }
-    }
-    if (name === "specificTool") {
-      return { content: [{ type: "text", text: "specific tool result" }] }
     }
     return data
   }
