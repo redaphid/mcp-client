@@ -63,9 +63,46 @@ describe("MCPClient", () => {
       expect(result).toEqual({ content: [{ type: "text", text: "test result" }] })
     })
   })
+})
+
+describe("MCPClient with alternate server", () => {
+  let server
+
+  beforeEach(async () => {
+    const app = express()
+    app.use(express.json())
+
+    app.post("/mcp", (req, res) => {
+      res.json({
+        content: [{ type: "text", text: "alternate result" }],
+      })
+    })
+    await new Promise<void>((resolve) => {
+      server = app.listen(3000)
+      server.on("listening", resolve)
+    })
+  })
+
+  afterEach(async () => {
+    server.close()
+  })
+
+  describe("when calling a tool", () => {
+    let result
+
+    beforeEach(async () => {
+      const client = new MCPClient("http://localhost:3000")
+      await client.connect()
+      result = await client.callTool("testTool", {})
+    })
+
+    it("should return alternate result", () => {
+      expect(result).toEqual({ content: [{ type: "text", text: "alternate result" }] })
+    })
+  })
 
   describe("when calling tool on different server", () => {
-    let server2: Server
+    let server2
     let result
 
     beforeEach(async () => {
