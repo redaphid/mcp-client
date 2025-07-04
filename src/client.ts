@@ -1,7 +1,9 @@
 export class MCPClient {
-  private requestId = 0
-
   constructor(public endpoint: string, public requestOptions?: any) {}
+
+  private generateRequestId() {
+    return crypto.randomUUID()
+  }
 
   async connect() {
     return "connected"
@@ -17,7 +19,7 @@ export class MCPClient {
       },
       body: JSON.stringify({
         jsonrpc: "2.0",
-        id: String(++this.requestId),
+        id: this.generateRequestId(),
         method: "initialize",
         params: {
           protocolVersion: "2025-06-18",
@@ -68,7 +70,7 @@ export class MCPClient {
       },
       body: JSON.stringify({
         jsonrpc: "2.0",
-        id: String(++this.requestId),
+        id: this.generateRequestId(),
         method: "tools/call",
         params: { name, arguments: args },
       }),
