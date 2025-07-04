@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import { MCPClient } from "./client"
 import express from "express"
+import { InitializeRequestSchema, InitializedNotificationSchema, JSONRPC_VERSION } from "./schemas"
 
+// MCP Lifecycle Tests: https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle
 describe("MCPClient initialization", () => {
   let server
   let port
@@ -55,8 +57,9 @@ describe("MCPClient initialization", () => {
     })
 
     it("should send proper initialize request", () => {
+      InitializeRequestSchema.parse(receivedRequests[0])
       expect(receivedRequests[0]).toEqual({
-        jsonrpc: "2.0", 
+        jsonrpc: JSONRPC_VERSION, 
         id: expect.any(String),
         method: "initialize",
         params: {
@@ -72,8 +75,9 @@ describe("MCPClient initialization", () => {
     })
 
     it("should send initialized notification after initialize", () => {
+      InitializedNotificationSchema.parse(receivedRequests[1])
       expect(receivedRequests[1]).toEqual({
-        jsonrpc: "2.0",
+        jsonrpc: JSONRPC_VERSION,
         method: "notifications/initialized"
       })
     })

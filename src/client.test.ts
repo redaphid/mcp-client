@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, beforeAll, afterAll, afterEach } from "vitest"
 import { MCPClient } from "./client"
 import express from "express"
+import { ToolSchema, CallToolResultSchema, JSONRPC_VERSION } from "./schemas"
 
+// MCP Client Integration Tests: https://modelcontextprotocol.io/specification/2025-06-18
 describe("MCPClient", () => {
   let server
   let port
@@ -15,8 +17,34 @@ describe("MCPClient", () => {
     app.use(express.json())
 
     app.post("/mcp", (req, res) => {
+      if (req.body?.method === "initialize") {
+        res.json({
+          jsonrpc: JSONRPC_VERSION,
+          id: req.body.id,
+          result: {
+            protocolVersion: "2025-06-18",
+            capabilities: { tools: {} },
+            serverInfo: { name: "dark-grimoire-server", version: "1.0.0" }
+          }
+        })
+        return
+      }
+      if (req.body?.method === "tools/list") {
+        res.json({
+          jsonrpc: JSONRPC_VERSION,
+          id: req.body.id,
+          result: {
+            tools: [{ name: "spellOfSummoning", description: "Arcane incantation for mystical effects", inputSchema: { type: "object" } }]
+          }
+        })
+        return
+      }
+      if (req.body?.method === "notifications/initialized") {
+        res.status(202).send()
+        return
+      }
       res.json({
-        tools: [{ name: "spellOfSummoning", description: "Arcane incantation for mystical effects", inputSchema: { type: "object" } }],
+        content: [{ type: "text", text: "dark magical essence summoned" }],
       })
     })
     await new Promise<void>((resolve) => {
@@ -39,32 +67,99 @@ describe("MCPClient", () => {
     })
   })
 
-
+  // MCP Tools: https://modelcontextprotocol.io/specification/2025-06-18/server/tools
   describe("when listing tools", () => {
     let tools
 
     beforeEach(async () => {
       const client = new MCPClient(`http://localhost:${port}`)
-      await client.connect()
+      await client.initialize()
       tools = await client.listTools()
     })
 
     it("should return array of tools", () => {
-      expect(tools).toEqual([{ name: "spellOfSummoning", description: "Arcane incantation for mystical effects", inputSchema: { type: "object" } }])
+      expect(Array.isArray(tools)).toBe(true)
+      ToolSchema.parse(tools[0])
+      expect(tools).toEqual([
+        {
+          name: "spellOfSummoning",
+          description: "Arcane incantation for mystical effects",
+          inputSchema: { type: "object" },
+        },
+      ])
     })
   })
 
+  describe("when listTools sends request", () => {
+    let receivedRequests
+
+    beforeEach(async () => {
+      receivedRequests = []
+      const app = express()
+      app.use(express.json())
+      
+      app.post("/mcp", (req, res) => {
+        receivedRequests.push(req.body)
+        if (req.body.method === "initialize") {
+          res.json({
+            jsonrpc: JSONRPC_VERSION,
+            id: req.body.id,
+            result: {
+              protocolVersion: "2025-06-18",
+              capabilities: { tools: {} },
+              serverInfo: { name: "dark-grimoire-server", version: "1.0.0" }
+            }
+          })
+          return
+        }
+        if (req.body.method === "tools/list") {
+          res.json({
+            jsonrpc: JSONRPC_VERSION,
+            id: req.body.id,
+            result: { tools: [{ name: "spellOfSummoning", description: "Arcane incantation", inputSchema: { type: "object" } }] }
+          })
+          return
+        }
+        res.status(202).send()
+      })
+
+      await new Promise<void>((resolve) => {
+        server = app.listen(0, () => {
+          port = server.address().port
+          resolve()
+        })
+      })
+
+      const client = new MCPClient(`http://localhost:${port}`)
+      await client.initialize()
+      await client.listTools()
+    })
+
+    it("should send proper tools/list JSON-RPC request", () => {
+      const toolsRequest = receivedRequests.find(req => req.method === "tools/list")
+      expect(toolsRequest).toEqual({
+        jsonrpc: JSONRPC_VERSION,
+        id: expect.any(String),
+        method: "tools/list"
+      })
+    })
+  })
+
+  // MCP Tool Calling: https://modelcontextprotocol.io/specification/2025-06-18/server/tools
   describe("when calling a tool", () => {
     let result
 
     beforeEach(async () => {
       const client = new MCPClient(`http://localhost:${port}`)
-      await client.connect()
+      await client.initialize()
       result = await client.callTool("spellOfSummoning", {})
     })
 
     it("should return tool result", () => {
-      expect(result).toEqual({ content: [{ type: "text", text: "dark magical essence summoned" }] })
+      CallToolResultSchema.parse(result)
+      expect(result).toEqual({
+        content: [{ type: "text", text: "dark magical essence summoned" }],
+      })
     })
   })
 })
@@ -79,9 +174,27 @@ describe("MCPClient with alternate server", () => {
     app.use(express.json())
 
     app.post("/mcp", (req, res) => {
-      res.json(serverResponse || {
-        content: [{ type: "text", text: "alternate result" }],
-      })
+      if (req.body?.method === "initialize") {
+        res.json({
+          jsonrpc: JSONRPC_VERSION,
+          id: req.body.id,
+          result: {
+            protocolVersion: "2025-06-18",
+            capabilities: { tools: {} },
+            serverInfo: { name: "alternate-server", version: "1.0.0" }
+          }
+        })
+        return
+      }
+      if (req.body?.method === "notifications/initialized") {
+        res.status(202).send()
+        return
+      }
+      res.json(
+        serverResponse || {
+          content: [{ type: "text", text: "alternate result" }],
+        }
+      )
     })
     await new Promise<void>((resolve) => {
       server = app.listen(0, () => {
@@ -100,7 +213,7 @@ describe("MCPClient with alternate server", () => {
 
     beforeEach(async () => {
       const client = new MCPClient(`http://localhost:${port}`)
-      await client.connect()
+      await client.initialize()
       result = await client.callTool("spellOfSummoning", {})
     })
 
@@ -115,7 +228,7 @@ describe("MCPClient with alternate server", () => {
     beforeEach(async () => {
       serverResponse = { content: [{ type: "text", text: "specific tool result" }] }
       const client = new MCPClient(`http://localhost:${port}`)
-      await client.connect()
+      await client.initialize()
       result = await client.callTool("specificTool", { param: "value" })
     })
 
@@ -130,7 +243,7 @@ describe("MCPClient with alternate server", () => {
     beforeEach(async () => {
       serverResponse = { content: [{ type: "text", text: "another tool result" }] }
       const client = new MCPClient(`http://localhost:${port}`)
-      await client.connect()
+      await client.initialize()
       result = await client.callTool("anotherTool", { data: "test" })
     })
 
@@ -138,7 +251,6 @@ describe("MCPClient with alternate server", () => {
       expect(result).toEqual({ content: [{ type: "text", text: "another tool result" }] })
     })
   })
-
 })
 
 describe("MCPClient with different server", () => {
@@ -149,6 +261,22 @@ describe("MCPClient with different server", () => {
     const app = express()
     app.use(express.json())
     app.post("/mcp", (req, res) => {
+      if (req.body?.method === "initialize") {
+        res.json({
+          jsonrpc: JSONRPC_VERSION,
+          id: req.body.id,
+          result: {
+            protocolVersion: "2025-06-18",
+            capabilities: { tools: {} },
+            serverInfo: { name: "different-server", version: "1.0.0" }
+          }
+        })
+        return
+      }
+      if (req.body?.method === "notifications/initialized") {
+        res.status(202).send()
+        return
+      }
       res.json({
         content: [{ type: "text", text: "different result" }],
       })
@@ -171,7 +299,7 @@ describe("MCPClient with different server", () => {
 
     beforeEach(async () => {
       const client = new MCPClient(`http://localhost:${port}`)
-      await client.connect()
+      await client.initialize()
       result = await client.callTool("spellOfSummoning", {})
     })
 
@@ -181,6 +309,7 @@ describe("MCPClient with different server", () => {
   })
 })
 
+// MCP Streamable HTTP Transport Tests: https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
 describe("MCPClient headers", () => {
   let server
   let port
@@ -191,6 +320,22 @@ describe("MCPClient headers", () => {
     app.use(express.json())
     app.post("/mcp", (req, res) => {
       receivedHeaders = req.headers
+      if (req.body?.method === "initialize") {
+        res.json({
+          jsonrpc: JSONRPC_VERSION,
+          id: req.body.id,
+          result: {
+            protocolVersion: "2025-06-18",
+            capabilities: { tools: {} },
+            serverInfo: { name: "header-test-server", version: "1.0.0" }
+          }
+        })
+        return
+      }
+      if (req.body?.method === "notifications/initialized") {
+        res.status(202).send()
+        return
+      }
       res.json({
         content: [{ type: "text", text: "header test result" }],
       })
@@ -211,7 +356,7 @@ describe("MCPClient headers", () => {
   describe("when making a request", () => {
     beforeEach(async () => {
       const client = new MCPClient(`http://localhost:${port}`)
-      await client.connect()
+      await client.initialize()
       await client.callTool("testTool", {})
     })
 
@@ -228,10 +373,26 @@ describe("MCPClient headers", () => {
       const app = express()
       app.use(express.json())
       app.post("/mcp", (req, res) => {
+        if (req.body?.method === "initialize") {
+          res.json({
+            jsonrpc: JSONRPC_VERSION,
+            id: req.body.id,
+            result: {
+              protocolVersion: "2025-06-18",
+              capabilities: { tools: {} },
+              serverInfo: { name: "jsonrpc-test-server", version: "1.0.0" }
+            }
+          })
+          return
+        }
+        if (req.body?.method === "notifications/initialized") {
+          res.status(202).send()
+          return
+        }
         res.json({
-          jsonrpc: "2.0",
-          id: "1", 
-          result: { content: [{ type: "text", text: "jsonrpc result" }] }
+          jsonrpc: JSONRPC_VERSION,
+          id: req.body.id,
+          result: { content: [{ type: "text", text: "jsonrpc result" }] },
         })
       })
 
@@ -243,7 +404,7 @@ describe("MCPClient headers", () => {
       })
 
       const client = new MCPClient(`http://localhost:${port}`)
-      await client.connect()
+      await client.initialize()
       result = await client.callTool("spellOfSummoning", {})
     })
 
@@ -259,10 +420,26 @@ describe("MCPClient headers", () => {
       const app = express()
       app.use(express.json())
       app.post("/mcp", (req, res) => {
+        if (req.body?.method === "initialize") {
+          res.json({
+            jsonrpc: JSONRPC_VERSION,
+            id: req.body.id,
+            result: {
+              protocolVersion: "2025-06-18",
+              capabilities: { tools: {} },
+              serverInfo: { name: "error-test-server", version: "1.0.0" }
+            }
+          })
+          return
+        }
+        if (req.body?.method === "notifications/initialized") {
+          res.status(202).send()
+          return
+        }
         res.json({
-          jsonrpc: "2.0",
-          id: "1",
-          error: { code: -32601, message: "Method not found" }
+          jsonrpc: JSONRPC_VERSION,
+          id: req.body.id,
+          error: { code: -32601, message: "Method not found" },
         })
       })
 
@@ -274,7 +451,7 @@ describe("MCPClient headers", () => {
       })
 
       const client = new MCPClient(`http://localhost:${port}`)
-      await client.connect()
+      await client.initialize()
       try {
         await client.callTool("unknownTool", {})
       } catch (e) {
@@ -287,6 +464,7 @@ describe("MCPClient headers", () => {
     })
   })
 
+  // SSE Format: https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events
   describe("when server returns SSE stream", () => {
     let result
 
@@ -294,10 +472,26 @@ describe("MCPClient headers", () => {
       const app = express()
       app.use(express.json())
       app.post("/mcp", (req, res) => {
+        if (req.body?.method === "initialize") {
+          res.json({
+            jsonrpc: JSONRPC_VERSION,
+            id: req.body.id,
+            result: {
+              protocolVersion: "2025-06-18",
+              capabilities: { tools: {} },
+              serverInfo: { name: "sse-test-server", version: "1.0.0" }
+            }
+          })
+          return
+        }
+        if (req.body?.method === "notifications/initialized") {
+          res.status(202).send()
+          return
+        }
         res.writeHead(200, {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive'
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
         })
         res.write('data: {"jsonrpc": "2.0", "method": "notifications/progress", "params": {"progress": 0.5}}\n\n')
         res.write('data: {"jsonrpc": "2.0", "id": "1", "result": {"content": [{"type": "text", "text": "sse result"}]}}\n\n')
@@ -312,7 +506,7 @@ describe("MCPClient headers", () => {
       })
 
       const client = new MCPClient(`http://localhost:${port}`)
-      await client.connect()
+      await client.initialize()
       result = await client.callTool("spellOfSummoning", {})
     })
 
@@ -321,6 +515,7 @@ describe("MCPClient headers", () => {
     })
   })
 
+  // MCP Progress Notifications: https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle
   describe("when server returns long-running SSE stream", () => {
     let notifications
     let finalResult
@@ -330,10 +525,26 @@ describe("MCPClient headers", () => {
       const app = express()
       app.use(express.json())
       app.post("/mcp", (req, res) => {
+        if (req.body?.method === "initialize") {
+          res.json({
+            jsonrpc: JSONRPC_VERSION,
+            id: req.body.id,
+            result: {
+              protocolVersion: "2025-06-18",
+              capabilities: { tools: {} },
+              serverInfo: { name: "long-sse-server", version: "1.0.0" }
+            }
+          })
+          return
+        }
+        if (req.body?.method === "notifications/initialized") {
+          res.status(202).send()
+          return
+        }
         res.writeHead(200, {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive'
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
         })
         res.write('data: {"jsonrpc": "2.0", "method": "notifications/progress", "params": {"step": "starting", "progress": 0.1}}\n\n')
         res.write('data: {"jsonrpc": "2.0", "method": "notifications/progress", "params": {"step": "processing", "progress": 0.5}}\n\n')
@@ -350,7 +561,7 @@ describe("MCPClient headers", () => {
       })
 
       const client = new MCPClient(`http://localhost:${port}`)
-      await client.connect()
+      await client.initialize()
       finalResult = await client.callTool("longTask", {}, (notification) => {
         notifications.push(notification)
       })
@@ -376,6 +587,22 @@ describe("MCPClient headers", () => {
       app.use(express.json())
       app.post("/mcp", (req, res) => {
         receivedHeaders = req.headers
+        if (req.body?.method === "initialize") {
+          res.json({
+            jsonrpc: JSONRPC_VERSION,
+            id: req.body.id,
+            result: {
+              protocolVersion: "2025-06-18",
+              capabilities: { tools: {} },
+              serverInfo: { name: "auth-test-server", version: "1.0.0" }
+            }
+          })
+          return
+        }
+        if (req.body?.method === "notifications/initialized") {
+          res.status(202).send()
+          return
+        }
         res.json({
           content: [{ type: "text", text: "authenticated result" }],
         })
@@ -389,12 +616,90 @@ describe("MCPClient headers", () => {
       })
 
       const client = new MCPClient(`http://localhost:${port}`, { headers: { Authorization: "Bearer secret-token" } })
-      await client.connect()
+      await client.initialize()
       await client.callTool("testTool", {})
     })
 
     it("should send Authorization header", () => {
       expect(receivedHeaders.authorization).toBe("Bearer secret-token")
+    })
+  })
+
+  describe("when server returns different tool result", () => {
+    let result
+
+    beforeEach(async () => {
+      const app = express()
+      app.use(express.json())
+      app.post("/mcp", (req, res) => {
+        if (req.body?.method === "initialize") {
+          res.json({
+            jsonrpc: JSONRPC_VERSION,
+            id: req.body.id,
+            result: {
+              protocolVersion: "2025-06-18",
+              capabilities: { tools: {} },
+              serverInfo: { name: "rune-test-server", version: "1.0.0" }
+            }
+          })
+          return
+        }
+        if (req.body?.method === "notifications/initialized") {
+          res.status(202).send()
+          return
+        }
+        res.json({
+          jsonrpc: JSONRPC_VERSION,
+          id: req.body.id,
+          result: {
+            content: [{ type: "text", text: "mystical rune activated" }]
+          }
+        })
+      })
+
+      await new Promise<void>((resolve) => {
+        server = app.listen(0, () => {
+          port = server.address().port
+          resolve()
+        })
+      })
+
+      const client = new MCPClient(`http://localhost:${port}`)
+      await client.initialize()
+      result = await client.callTool("spellOfSummoning", {})
+    })
+
+    it("should return server's actual response, not hard-coded text", () => {
+      expect(result).toEqual({
+        content: [{ type: "text", text: "mystical rune activated" }]
+      })
+    })
+  })
+
+  describe("when connect() method is called", () => {
+    let result
+
+    beforeEach(async () => {
+      const client = new MCPClient(`http://localhost:${port}`)
+      result = await client.connect()
+    })
+
+    it("should return connection status", () => {
+      expect(result).toBe("connected")
+    })
+
+    it("should enforce initialization requirement for tool operations", async () => {
+      const client = new MCPClient(`http://localhost:${port}`)
+      await client.connect()
+      
+      // callTool should require initialization
+      let error
+      try {
+        await client.callTool("spellOfSummoning", {})
+      } catch (e) {
+        error = e
+      }
+      expect(error?.message).toBe("Client must be initialized before making requests")
     })
   })
 })

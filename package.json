@@ -6,12 +6,17 @@
   "scripts": {
     "test:once": "vitest --run",
     "test": "vitest",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "build": "tsc",
+    "connect": "node --experimental-strip-types cli.ts"
   },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "^1.13.1",
     "express": "^5.1.0",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "zod": "^3.25.72"
   }
 }
