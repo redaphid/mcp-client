@@ -78,4 +78,22 @@ describe("MCPClient initialization", () => {
       })
     })
   })
+
+  describe("when client makes multiple requests", () => {
+    let client
+    let result1
+    let result2
+
+    beforeEach(async () => {
+      client = new MCPClient(`http://localhost:${port}`)
+      result1 = await client.initialize()
+      result2 = await client.initialize()
+    })
+
+    it("should use different request IDs", () => {
+      const firstRequestId = receivedRequests[0].id
+      const thirdRequestId = receivedRequests[2].id
+      expect(firstRequestId).not.toEqual(thirdRequestId)
+    })
+  })
 })
