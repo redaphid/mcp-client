@@ -4,12 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "vitest --run",
+    "test:once": "vitest --run",
+    "test": "vitest",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "^1.13.1",
+    "express": "^5.1.0",
     "typescript": "^5.8.3",
-    "vitest": "^2.1.6"
+    "vitest": "^3.2.4"
   }
 }

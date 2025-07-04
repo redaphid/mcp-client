@@ -1,11 +1,18 @@
 export class MCPClient {
-  constructor(endpoint) {}
+  constructor(endpoint) {
+    this.endpoint = endpoint
+  }
   
   async connect() {
     return 'connected'
   }
   
   async listTools() {
-    return ['testTool']
+    const response = await fetch(`${this.endpoint}/mcp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    const data = await response.json()
+    return data.tools
   }
 }

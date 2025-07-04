@@ -210,6 +210,166 @@ vitest run --reporter=json --outputFile=test-results.json
 </ci-tests>
 </common-patterns>
 
+<add-test-requirements>
+## ADD Test Infrastructure Requirements
+
+<technical-summary>
+ADD test rules for infrastructure:
+- Tests MUST be able to pass when written (full setup required)
+- Do not write broken tests that fail due to missing infrastructure
+- Set up servers, mocks, and dependencies BEFORE writing the test
+- Test should fail ONLY because implementation doesn't exist yet
+</technical-summary>
+
+<test-setup-rules>
+### The Law of Complete Test Setup
+
+_*raises staff of testing righteousness*_ **CRITICAL**: Tests must have ALL infrastructure ready!
+
+<wrong-pattern>
+#### ❌ WRONG - Broken Test Infrastructure
+
+```typescript
+// BAD - Test fails because server setup is broken
+describe('when server returns different tools', () => {
+  let tools
+  
+  beforeEach(async () => {
+    // Broken server setup that crashes
+    server = new Server({ broken: 'config' })
+    const client = new MCPClient('http://localhost:3000')
+    tools = await client.listTools()
+  })
+  
+  it('should return different tools', () => {
+    expect(tools).toEqual(['otherTool']) // Never reached due to setup failure
+  })
+})
+```
+</wrong-pattern>
+
+<right-pattern>
+#### ✅ RIGHT - Complete Test Infrastructure
+
+```typescript
+// GOOD - Test fails only because listTools() method doesn't exist
+describe('when server returns different tools', () => {
+  let server
+  let tools
+  
+  beforeEach(async () => {
+    // Complete, working server setup
+    server = new Server({
+      name: 'test-server',
+      version: '1.0.0'
+    }, { capabilities: { tools: {} } })
+    
+    server.setRequestHandler('tools/list', async () => ({
+      tools: [{ name: 'otherTool', description: 'Test', inputSchema: { type: 'object' } }]
+    }))
+    
+    const serverUrl = server.listen()
+    const client = new MCPClient(serverUrl)
+    tools = await client.listTools() // THIS should be the failure point
+  })
+  
+  afterEach(async () => {
+    await server.close()
+  })
+  
+  it('should return different tools', () => {
+    expect(tools).toEqual(['otherTool']) // Fails because listTools() doesn't exist
+  })
+})
+```
+</right-pattern>
+
+<principle>
+### The Sacred Principle
+
+**The test should fail at the EXACT point where your implementation is missing, not because your test setup is broken.**
+
+If your test fails with "Cannot read properties of undefined" or "Server setup error", you have violated the ADD laws!
+</principle>
+</test-setup-rules>
+
+<coding-style-constraints>
+### ADD Coding Style in Tests
+
+<const-let-rules>
+#### The const/let Commandments
+
+_*adjusts coding monocle*_ **CRITICAL**: Minimize `let` usage!
+
+```typescript
+// ✅ GOOD - Use const for objects that don't change
+describe('when connecting', () => {
+  let result
+  
+  beforeEach(async () => {
+    const client = new MCPClient('http://localhost:3000') // const!
+    result = await client.connect() // let only for response
+  })
+})
+
+// ❌ BAD - Unnecessary let declarations
+describe('when connecting', () => {
+  let client  // WRONG - client doesn't change
+  let result
+  
+  beforeEach(async () => {
+    client = new MCPClient('http://localhost:3000')
+    result = await client.connect()
+  })
+})
+```
+</const-let-rules>
+
+<no-variables-for-simple-values>
+#### The Inline String Commandment
+
+_*waves away abstraction demons*_ **NEVER** extract simple strings to variables!
+
+```typescript
+// ✅ GOOD - Repeat simple strings inline
+it('should return success', () => {
+  expect(result).toBe('http://localhost:3000')
+})
+
+it('should handle same endpoint', () => {
+  expect(client.endpoint).toBe('http://localhost:3000') // Repeat it!
+})
+
+// ❌ BAD - Unnecessary variable extraction
+let endpoint
+beforeEach(() => {
+  endpoint = 'http://localhost:3000' // WRONG - makes tests complex
+})
+```
+</no-variables-for-simple-values>
+
+<no-conditional-checks>
+#### The Certainty Commandment
+
+_*banishes defensive programming*_ **NEVER** check if things exist in test cleanup!
+
+```typescript
+// ✅ GOOD - Server MUST exist
+afterEach(async () => {
+  await server.close() // No if check needed
+})
+
+// ❌ BAD - Defensive programming in tests
+afterEach(async () => {
+  if (server) { // WRONG - server should always exist
+    await server.close()
+  }
+})
+```
+</no-conditional-checks>
+</coding-style-constraints>
+</add-test-requirements>
+
 <key-takeaways>
 ## The Final Wisdom Tablets
 
@@ -219,6 +379,9 @@ _*etches into stone with lightning*_
 2. **Run mode is the sacred law** - Never summon the eternal watcher!
 3. **Mortal assistance required for streams** - Claude cannot drink from endless fountains!
 4. **File-based divination** - Capture spirits in scrolls for later reading!
+5. **Complete test setup required** - Tests must fail only at implementation points!
+6. **Minimal let usage** - Use const for immutable objects, let only for results!
+7. **No defensive test code** - Tests should assume their setup works perfectly!
 
 _*cackles with finality*_ Heed these warnings well, or be trapped in eternal loops forever!
 </key-takeaways>

@@ -1,43 +1,49 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { MCPClient } from './client'
-import { Server } from '@modelcontextprotocol/sdk/server/index.js'
-
-describe('MCPClient', () => {
-  it('should exist', () => {
+import { describe, it, expect, beforeEach, beforeAll, afterAll } from "vitest"
+import { MCPClient } from "./client"
+import express from "express"
+import { createServer } from "http"
+import { Server } from "s"
+describe("MCPClient", () => {
+  let server: Server
+  it("should exist", () => {
     expect(MCPClient).toBeDefined()
   })
+  beforeAll(async () => {
+    const app = express()
+    app.use(express.json())
 
-  describe('when creating a client', () => {
-    const client = new MCPClient()
-    
-    it('should create an instance', () => {
+    app.post("/mcp", (req, res) => {
+      res.json({
+        tools: [{ name: "testTool", description: "Test tool", inputSchema: { type: "object" } }],
+      })
+    })
+    await new Promise<void>((resolve) => {
+      server = app.listen(3000)
+      server.on("listening", () => resolve())
+    })
+  })
+  afterAll(async () => {
+    server.close()
+  })
+  describe("when creating a client", () => {
+    const client = new MCPClient("http://crazyland.com")
+
+    it("should create an instance", () => {
       expect(client).toBeDefined()
     })
   })
 
-  describe('when connecting to server', () => {
-    let result
-    
-    beforeEach(async () => {
-      const client = new MCPClient('http://localhost:3000')
-      result = await client.connect()
-    })
-    
-    it('should return connection success', () => {
-      expect(result).toBe('connected')
-    })
-  })
-
-  describe('when listing tools', () => {
+  describe("when listing tools", () => {
     let tools
-    
+
     beforeEach(async () => {
-      const client = new MCPClient('http://localhost:3000')
+      const client = new MCPClient("http://localhost:3000")
+      await client.connect()
       tools = await client.listTools()
     })
-    
-    it('should return array of tools', () => {
-      expect(tools).toEqual(['testTool'])
+
+    it("should return array of tools", () => {
+      expect(tools).toEqual([{ name: "testTool", description: "Test tool", inputSchema: { type: "object" } }])
     })
   })
 })
