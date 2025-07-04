@@ -70,5 +70,12 @@ describe("MCPClient initialization", () => {
     it("should return server capabilities", () => {
       expect(result.capabilities).toEqual({ tools: {} })
     })
+
+    it("should send initialized notification after initialize", () => {
+      expect(receivedRequests[1]).toEqual({
+        jsonrpc: "2.0",
+        method: "notifications/initialized"
+      })
+    })
   })
 })
