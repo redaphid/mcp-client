@@ -8,7 +8,10 @@ export class MCPClient {
   async listTools() {
     const response = await fetch(`${this.endpoint}/mcp`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/event-stream"
+      },
     })
     const data = await response.json()
     return data.tools
@@ -17,7 +20,10 @@ export class MCPClient {
   async callTool(name, args) {
     const response = await fetch(`${this.endpoint}/mcp`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/event-stream"
+      },
       body: JSON.stringify({
         jsonrpc: "2.0",
         id: "1",

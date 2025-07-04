@@ -164,3 +164,40 @@ describe("MCPClient with alternate server", () => {
     })
   })
 })
+
+describe("MCPClient headers", () => {
+  let server
+  let receivedHeaders
+
+  beforeEach(async () => {
+    const app = express()
+    app.use(express.json())
+    app.post("/mcp", (req, res) => {
+      receivedHeaders = req.headers
+      res.json({
+        content: [{ type: "text", text: "header test result" }],
+      })
+    })
+
+    await new Promise<void>((resolve) => {
+      server = app.listen(3000)
+      server.on("listening", () => resolve())
+    })
+  })
+
+  afterEach(async () => {
+    server.close()
+  })
+
+  describe("when making a request", () => {
+    beforeEach(async () => {
+      const client = new MCPClient("http://localhost:3000")
+      await client.connect()
+      await client.callTool("testTool", {})
+    })
+
+    it("should send proper Accept header", () => {
+      expect(receivedHeaders.accept).toBe("application/json, text/event-stream")
+    })
+  })
+})
