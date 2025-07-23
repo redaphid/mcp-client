@@ -26,6 +26,46 @@ export class MCPClient {
     }
   }
 
+  private async parseResponse(response: Response, callback?: (notification: any) => void) {
+    const contentType = response.headers.get("content-type")
+    
+    // MCP Streamable HTTP Transport: https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
+    // Server may respond with SSE stream
+    if (contentType?.includes("text/event-stream")) {
+      const text = await response.text()
+      const lines = text.split("\n")
+      let finalResult = null
+      
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          // SSE Format: https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events
+          // Remove "data: " prefix to extract JSON
+          const jsonData = JSON.parse(line.slice("data: ".length))
+          if (jsonData.method && callback) {
+            // MCP Progress Notifications: https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle
+            callback(jsonData.params)
+          }
+          if (jsonData.result) {
+            finalResult = jsonData.result
+          }
+        }
+      }
+      
+      return finalResult
+    }
+    
+    // Parse as regular JSON
+    const data = await response.json()
+    
+    // JSON-RPC Error Handling: https://www.jsonrpc.org/specification#error_object
+    if (data.error) {
+      throw new Error(data.error.message)
+    }
+    
+    // JSON-RPC Response: https://www.jsonrpc.org/specification#response_object
+    return data.result || data
+  }
+
   async connect() {
     return "connected"
   }
@@ -64,16 +104,8 @@ export class MCPClient {
     
     debug('Response status: %d', response.status)
     debug('Response headers: %O', Object.fromEntries(response.headers.entries()))
-    const text = await response.text()
-    debug('Response text: %s', text.substring(0, 500))
     
-    // Try to parse as JSON
-    let data
-    try {
-      data = JSON.parse(text)
-    } catch (e) {
-      throw new Error(`Failed to parse JSON response: ${text.substring(0, 100)}...`)
-    }
+    const data = await this.parseResponse(response)
 
     debug("Initialize response data: %O", data)
     
@@ -98,7 +130,7 @@ export class MCPClient {
 
     this.isInitialized = true
     debug("Initialization complete, client is now initialized")
-    return data.result
+    return data
   }
 
   async listTools() {
@@ -126,10 +158,10 @@ export class MCPClient {
     debug('listTools response status: %d', response.status)
     debug('listTools response headers: %O', Object.fromEntries(response.headers.entries()))
     
-    const data = await response.json()
-    debug("listTools response data: %O", data)
+    const result = await this.parseResponse(response)
+    debug("listTools response data: %O", result)
     
-    return data.result.tools
+    return result.tools
   }
 
   async callTool(name, args, callback?) {
@@ -150,45 +182,6 @@ export class MCPClient {
       })),
     })
 
-    const contentType = response.headers.get("content-type")
-
-    // MCP Streamable HTTP Transport: https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
-    // Server may respond with SSE stream for progress notifications
-    if (contentType?.includes("text/event-stream")) {
-      const text = await response.text()
-      const lines = text.split("\n")
-      let finalResult = null
-
-      for (const line of lines) {
-        if (line.startsWith("data: ")) {
-          // SSE Format: https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events
-          // Remove "data: " prefix (6 characters) to extract JSON
-          const jsonData = JSON.parse(line.slice("data: ".length))
-          if (jsonData.method && callback) {
-            // MCP Progress Notifications: https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle
-            callback(jsonData.params)
-          }
-          if (jsonData.result) {
-            finalResult = jsonData.result
-          }
-        }
-      }
-
-      return finalResult
-    }
-
-    const data = await response.json()
-
-    // JSON-RPC Error Handling: https://www.jsonrpc.org/specification#error_object
-    if (data.error) {
-      throw new Error(data.error.message)
-    }
-
-    // JSON-RPC Response: https://www.jsonrpc.org/specification#response_object
-    if (data.result) {
-      return data.result
-    }
-
-    return data
+    return await this.parseResponse(response, callback)
   }
 }

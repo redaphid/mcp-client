@@ -2,10 +2,13 @@ import { describe, it, expect, beforeEach, beforeAll, afterAll, afterEach } from
 import { MCPClient } from "./client"
 import express from "express"
 import { ToolSchema, CallToolResultSchema, JSONRPC_VERSION } from "./schemas"
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js"
 
 // MCP Client Integration Tests: https://modelcontextprotocol.io/specification/2025-06-18
 describe("MCPClient", () => {
-  let server
+  let mcpServer: McpServer
+  let httpServer
   let port
 
   it("should exist", () => {
@@ -13,50 +16,47 @@ describe("MCPClient", () => {
   })
 
   beforeEach(async () => {
+    // Create MCP SDK server
+    mcpServer = new McpServer({
+      name: "dark-grimoire-server",
+      version: "1.0.0"
+    })
+
+    // Register tool using the canonical API
+    mcpServer.registerTool(
+      "spellOfSummoning",
+      {
+        description: "Arcane incantation for mystical effects",
+        inputSchema: { type: "object" }
+      },
+      async () => ({
+        content: [{ type: "text", text: "dark magical essence summoned" }]
+      })
+    )
+
+    // Create Express app with SDK transport
     const app = express()
     app.use(express.json())
 
-    app.post("/mcp", (req, res) => {
-      if (req.body?.method === "initialize") {
-        res.json({
-          jsonrpc: JSONRPC_VERSION,
-          id: req.body.id,
-          result: {
-            protocolVersion: "2025-06-18",
-            capabilities: { tools: {} },
-            serverInfo: { name: "dark-grimoire-server", version: "1.0.0" }
-          }
-        })
-        return
-      }
-      if (req.body?.method === "tools/list") {
-        res.json({
-          jsonrpc: JSONRPC_VERSION,
-          id: req.body.id,
-          result: {
-            tools: [{ name: "spellOfSummoning", description: "Arcane incantation for mystical effects", inputSchema: { type: "object" } }]
-          }
-        })
-        return
-      }
-      if (req.body?.method === "notifications/initialized") {
-        res.status(202).send()
-        return
-      }
-      res.json({
-        content: [{ type: "text", text: "dark magical essence summoned" }],
+    app.post("/mcp", async (req, res) => {
+      const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined // stateless mode
       })
+      await mcpServer.connect(transport)
+      await transport.handleRequest(req, res, req.body)
     })
+
+    // Start HTTP server
     await new Promise<void>((resolve) => {
-      server = app.listen(0, () => {
-        port = server.address().port
+      httpServer = app.listen(0, () => {
+        port = httpServer.address().port
         resolve()
       })
     })
   })
 
   afterEach(async () => {
-    server.close()
+    httpServer.close()
   })
 
   describe("when creating a client", () => {
@@ -84,7 +84,10 @@ describe("MCPClient", () => {
         {
           name: "spellOfSummoning",
           description: "Arcane incantation for mystical effects",
-          inputSchema: { type: "object" },
+          inputSchema: { 
+            type: "object",
+            $schema: "http://json-schema.org/draft-07/schema#"
+          },
         },
       ])
     })
@@ -92,6 +95,8 @@ describe("MCPClient", () => {
 
   describe("when listTools sends request", () => {
     let receivedRequests
+    let server
+    let port
 
     beforeEach(async () => {
       receivedRequests = []
@@ -133,6 +138,10 @@ describe("MCPClient", () => {
       const client = new MCPClient(`http://localhost:${port}/mcp`)
       await client.initialize()
       await client.listTools()
+    })
+
+    afterEach(async () => {
+      server.close()
     })
 
     it("should send proper tools/list JSON-RPC request", () => {
@@ -700,6 +709,23 @@ describe("MCPClient headers", () => {
         error = e
       }
       expect(error?.message).toBe("Client must be initialized before making requests")
+    })
+  })
+})
+
+// Real-world integration tests with streamable HTTP servers
+describe('MCPClient with real streamable HTTP servers', () => {
+  describe('when connecting to Cloudflare docs server', () => {
+    let client: MCPClient
+    let result
+    
+    beforeEach(async () => {
+      client = new MCPClient('https://docs.mcp.cloudflare.com/mcp')
+      result = await client.initialize()
+    }, 30000) // 30 second timeout for network request
+    
+    it('should parse SSE response and return server info', () => {
+      expect(result.serverInfo.name).toBe('docs-vectorize')
     })
   })
 })

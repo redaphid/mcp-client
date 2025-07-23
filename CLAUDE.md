@@ -380,6 +380,33 @@ See documentation in `/docs/methodology/` for complete methodology details.
 - Hemingway-esque coding style (minimal, functional, arrow functions, no semicolons)
 - One test at a time, minimal implementations, hard-code first
 - Tests must have complete infrastructure setup before testing implementation gaps
+
+### Session 2 Progress (2025-07-23)
+
+**Key User Directives:**
+- "it is critical that you use the MCPServer from modelcontextprotocol official libraries and not express"
+- "do NOT CREATE AN SSE SERVER. STREAMABLE HTTP ONLY"
+- "use context7 to understand how to use the modelcontextprotocol sdk"
+- "No, now go into 'integration tests', that are using the MCPServer. Replace the existing express mocks with that server"
+
+**MCP SDK Best Practices Discovered:**
+1. Use context7 MCP to get the most up-to-date documentation about @modelcontextprotocol/sdk
+2. The canonical way to create MCP servers is using McpServer class with registerTool(), not the low-level Server class with setRequestHandler()
+3. For stateless HTTP servers, create a new transport instance for each request
+4. The SDK automatically adds $schema to inputSchema objects
+5. Use StreamableHTTPServerTransport with sessionIdGenerator: undefined for stateless mode
+6. MCP servers respond with SSE (Server-Sent Events) format for StreamableHTTP transport
+
+**What's Been Fixed:**
+- ✅ Updated client's initialize() method to handle SSE responses from MCP servers
+- ✅ Created parseResponse() helper method to handle both SSE and JSON responses
+- ✅ Real Cloudflare MCP server test now passes
+- ✅ Replaced Express mocks with canonical McpServer implementation
+
+**Current State:**
+- Client properly parses SSE responses in initialize() and listTools()
+- Tests use official @modelcontextprotocol/sdk with McpServer.registerTool()
+- Real-world integration test with Cloudflare MCP server works
 </progress-log>
 
 <next-steps>
