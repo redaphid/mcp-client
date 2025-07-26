@@ -7,7 +7,6 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 
 // MCP Client Integration Tests: https://modelcontextprotocol.io/specification/2025-06-18
 describe("MCPClient", () => {
-  let mcpServer: McpServer
   let httpServer
   let port
 
@@ -16,31 +15,32 @@ describe("MCPClient", () => {
   })
 
   beforeEach(async () => {
-    // Create MCP SDK server
-    mcpServer = new McpServer({
-      name: "dark-grimoire-server",
-      version: "1.0.0"
-    })
-
-    // Register tool using the canonical API
-    mcpServer.registerTool(
-      "spellOfSummoning",
-      {
-        description: "Arcane incantation for mystical effects",
-        inputSchema: { type: "object" }
-      },
-      async () => ({
-        content: [{ type: "text", text: "dark magical essence summoned" }]
-      })
-    )
-
-    // Create Express app with SDK transport
+    // Create Express app following official SDK pattern
     const app = express()
     app.use(express.json())
 
     app.post("/mcp", async (req, res) => {
+      // Create new McpServer instance per request (stateless mode)
+      const mcpServer = new McpServer({
+        name: "dark-grimoire-server",
+        version: "1.0.0"
+      })
+
+      // Register tool using the canonical API
+      mcpServer.registerTool(
+        "spellOfSummoning",
+        {
+          description: "Arcane incantation for mystical effects",
+          inputSchema: { type: "object" }
+        },
+        async () => ({
+          content: [{ type: "text", text: "dark magical essence summoned" }]
+        })
+      )
+
+      // Create transport and connect (stateless mode)
       const transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: undefined // stateless mode
+        sessionIdGenerator: undefined
       })
       await mcpServer.connect(transport)
       await transport.handleRequest(req, res, req.body)
@@ -86,7 +86,9 @@ describe("MCPClient", () => {
           description: "Arcane incantation for mystical effects",
           inputSchema: { 
             type: "object",
-            $schema: "http://json-schema.org/draft-07/schema#"
+            $schema: "http://json-schema.org/draft-07/schema#",
+            additionalProperties: false,
+            properties: {}
           },
         },
       ])
@@ -162,6 +164,7 @@ describe("MCPClient", () => {
       const client = new MCPClient(`http://localhost:${port}/mcp`)
       await client.initialize()
       result = await client.callTool("spellOfSummoning", {})
+      console.log("Tool call result:", JSON.stringify(result, null, 2))
     })
 
     it("should return tool result", () => {

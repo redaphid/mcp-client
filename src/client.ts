@@ -33,6 +33,7 @@ export class MCPClient {
     // Server may respond with SSE stream
     if (contentType?.includes("text/event-stream")) {
       const text = await response.text()
+      debug("SSE response text: %s", text)
       const lines = text.split("\n")
       let finalResult = null
       
@@ -41,6 +42,7 @@ export class MCPClient {
           // SSE Format: https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events
           // Remove "data: " prefix to extract JSON
           const jsonData = JSON.parse(line.slice("data: ".length))
+          debug("SSE JSON data: %O", jsonData)
           if (jsonData.method && callback) {
             // MCP Progress Notifications: https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle
             callback(jsonData.params)
@@ -166,6 +168,7 @@ export class MCPClient {
 
   async callTool(name, args, callback?) {
     this.checkInitialized()
+    debug("Calling tool %s with args: %O", name, args)
     // MCP Tool Call: https://modelcontextprotocol.io/specification/2025-06-18/server/tools
     const response = await fetch(this.endpoint, {
       method: "POST",
@@ -182,6 +185,10 @@ export class MCPClient {
       })),
     })
 
-    return await this.parseResponse(response, callback)
+    debug("Tool call response status: %d", response.status)
+    debug("Tool call response headers: %O", Object.fromEntries(response.headers.entries()))
+    const result = await this.parseResponse(response, callback)
+    debug("Tool call result: %O", result)
+    return result
   }
 }
